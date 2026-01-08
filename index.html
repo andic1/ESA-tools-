@@ -69,9 +69,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onerror="this.onerror=null;this.href='/assets/vendor/fontawesome/css/all.min.css';">
     <style>
         :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary: #8b5cf6;
+            --primary: #2563eb; /* blue-600 */
+            --primary-dark: #1d4ed8; /* blue-700 */
+            --secondary: #06b6d4; /* cyan-500 */
             --bg: #0f172a;
             --bg-card: #1e293b;
             --bg-hover: #334155;
@@ -194,15 +194,31 @@
 
         /* Hero */
         .hero {
-            padding: 60px 0 40px;
+            position: relative;
+            padding: 72px 0 48px;
             text-align: center;
+            overflow: hidden;
+        }
+
+        .hero-bg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        .hero-inner {
+            position: relative;
+            z-index: 1;
         }
 
         .hero h1 {
             font-size: 42px;
             font-weight: 800;
             margin-bottom: 16px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary), #ec4899);
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -633,9 +649,10 @@
 
     <main>
         <section class="hero">
-            <div class="container">
+            <canvas id="hero-canvas" class="hero-bg"></canvas>
+            <div class="container hero-inner">
                 <h1>一站式在线工具箱</h1>
-                <p>所有工具均为单文件 HTML，无需注册、打开即用，数据仅在本地浏览器处理，不上传到服务器，帮助你快速解决工作和生活中的各种小需求。</p>
+                <p>所有工具均为单文件 HTML，无需注册、不传隐私，数据只在本地浏览器处理，一站式解决你工作和生活中的在线小需求。</p>
                 <div class="stats">
                     <div class="stat-item">
                         <div class="stat-value" id="tools-count">100</div>
@@ -646,16 +663,8 @@
                         <div class="stat-label">工具分类</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value" id="home-day-count">--/--</div>
-                        <div class="stat-label">首页今日 PV/UV（边缘统计）</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="home-total-count">--/--</div>
-                        <div class="stat-label">首页总 PV/UV（边缘统计）</div>
-                    </div>
-                    <div class="stat-item">
                         <div class="stat-value">100%</div>
-                        <div class="stat-label">开源免费</div>
+                        <div class="stat-label">开源免费 · 无需注册 · 不传隐私</div>
                     </div>
                 </div>
             </div>
@@ -749,6 +758,91 @@
         let currentCategory = 'all';
         let searchQuery = '';
         let sortOption = 'updated-desc';
+
+        // Hero background particles
+        (function initHeroParticles() {
+            const canvas = document.getElementById('hero-canvas');
+            if (!canvas || !canvas.getContext) return;
+
+            const ctx = canvas.getContext('2d');
+            const particles = [];
+            const maxParticles = 32;
+            const maxDistance = 120;
+
+            function resize() {
+                const rect = canvas.parentElement.getBoundingClientRect();
+                canvas.width = rect.width * window.devicePixelRatio;
+                canvas.height = rect.height * window.devicePixelRatio;
+                ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+            }
+
+            function createParticles() {
+                particles.length = 0;
+                const width = canvas.width / window.devicePixelRatio;
+                const height = canvas.height / window.devicePixelRatio;
+                for (let i = 0; i < maxParticles; i++) {
+                    particles.push({
+                        x: Math.random() * width,
+                        y: Math.random() * height,
+                        vx: (Math.random() - 0.5) * 0.25,
+                        vy: (Math.random() - 0.5) * 0.25,
+                        r: 0.8 + Math.random() * 1.2
+                    });
+                }
+            }
+
+            function step() {
+                const width = canvas.width / window.devicePixelRatio;
+                const height = canvas.height / window.devicePixelRatio;
+                ctx.clearRect(0, 0, width, height);
+
+                // draw particles
+                ctx.fillStyle = 'rgba(148, 163, 184, 0.4)';
+                for (const p of particles) {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    if (p.x < -10) p.x = width + 10;
+                    if (p.x > width + 10) p.x = -10;
+                    if (p.y < -10) p.y = height + 10;
+                    if (p.y > height + 10) p.y = -10;
+                }
+
+                // draw lines
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+                ctx.lineWidth = 0.5;
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const a = particles[i];
+                        const b = particles[j];
+                        const dx = a.x - b.x;
+                        const dy = a.y - b.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < maxDistance) {
+                            const alpha = 1 - dist / maxDistance;
+                            ctx.strokeStyle = `rgba(148, 163, 184, ${0.06 + alpha * 0.15})`;
+                            ctx.beginPath();
+                            ctx.moveTo(a.x, a.y);
+                            ctx.lineTo(b.x, b.y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+
+                requestAnimationFrame(step);
+            }
+
+            resize();
+            createParticles();
+            requestAnimationFrame(step);
+            window.addEventListener('resize', () => {
+                resize();
+                createParticles();
+            });
+        })();
 
         async function loadTools() {
             try {
@@ -864,36 +958,6 @@
             }).join('');
         }
 
-        function formatCount(value) {
-            if (typeof value !== 'number') {
-                return '--';
-            }
-            return value.toLocaleString('zh-CN');
-        }
-
-        function formatPair(pv, uv) {
-            return `${formatCount(pv)}/${formatCount(uv)}`;
-        }
-
-        async function loadHomeStats() {
-            try {
-                const response = await fetch('/api/clicks?ids=home');
-                if (!response.ok) {
-                    return;
-                }
-                const data = await response.json();
-                const stats = data.counts?.home;
-                if (!stats) {
-                    return;
-                }
-                document.getElementById('home-day-count').textContent = formatPair(stats.pv?.day, stats.uv?.day);
-                document.getElementById('home-total-count').textContent = formatPair(stats.pv?.total, stats.uv?.total);
-            } catch (error) {
-                console.warn('Failed to load home stats', error);
-            }
-        }
-
-
         // Search functionality
         document.getElementById('search-input').addEventListener('input', (e) => {
             searchQuery = e.target.value.toLowerCase();
@@ -906,10 +970,8 @@
         });
 
         // Initialize
-        loadHomeStats();
         loadTools();
 
     </script>
-    <script src="assets/clicks.js" defer></script>
 </body>
 </html>
