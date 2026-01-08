@@ -4,8 +4,7 @@
     <link rel="icon" href="/favicon.svg">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>工具使用排行 - EdgeTools · ESA Pages 边缘统计</title>
-    <link rel="canonical" href="https://www.htmls.dev/tools-rank.html">
+    <title>工具推荐排行 - OneBox 工具箱</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onerror="this.onerror=null;this.href='/assets/vendor/fontawesome/css/all.min.css';">
     <style>
         :root {
@@ -72,8 +71,8 @@
         }
 
         .page-title {
-            font-size: 24px;
-            font-weight: 700;
+            font-size: 20px;
+            font-weight: 600;
         }
 
         .hero {
@@ -212,14 +211,13 @@
         <div class="container">
             <div class="header-row">
                 <a class="back-link" href="/index.html"><i class="fas fa-arrow-left"></i> 返回首页</a>
-                <div class="page-title">工具使用排行（边缘统计）</div>
+                <div class="page-title">工具推荐排行</div>
                 <div class="controls">
-                    <label for="rank-metric">排行指标</label>
-                    <select id="rank-metric">
-                        <option value="pv-total">总 PV</option>
-                        <option value="uv-total">总 UV</option>
-                        <option value="pv-day">今日 PV</option>
-                        <option value="uv-day">今日 UV</option>
+                    <label>展示方式</label>
+                    <select id="rank-mode">
+                        <option value="random">随机排序</option>
+                        <option value="alphabet">按名称排序</option>
+                        <option value="updated">按更新时间排序</option>
                     </select>
                 </div>
             </div>
@@ -229,8 +227,8 @@
     <main>
         <section class="hero">
             <div class="container">
-                <h1>工具使用排行</h1>
-                <p>基于部署在阿里云 ESA Pages 边缘函数上的 PV/UV 统计，实时展示热门工具的整体使用情况。</p>
+                <h1>工具推荐排行</h1>
+                <p>从 OneBox 工具箱中随机挑选并排序部分工具，为你快速发现好用的小工具。刷新页面或切换展示方式即可看到不同的组合。</p>
             </div>
         </section>
 
@@ -245,7 +243,6 @@
 
     <script>
         let tools = [];
-        let stats = {};
 
         async function loadTools() {
             const response = await fetch('/index.json');
@@ -256,66 +253,44 @@
             tools = data.tools || [];
         }
 
-        async function loadStats() {
-            if (tools.length === 0) return;
-            const ids = tools.map(tool => tool.id).join(',');
-            const response = await fetch(`/api/clicks?ids=${encodeURIComponent(ids)}`);
-            if (!response.ok) {
-                throw new Error('加载统计失败');
+        function shuffle(array) {
+            const arr = array.slice();
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
             }
-            const data = await response.json();
-            stats = data.counts || {};
+            return arr;
         }
 
-        function getMetricValue(stat, metric) {
-            if (!stat) return 0;
-            if (metric === 'pv-total') return stat.pv?.total || 0;
-            if (metric === 'uv-total') return stat.uv?.total || 0;
-            if (metric === 'pv-day') return stat.pv?.day || 0;
-            if (metric === 'uv-day') return stat.uv?.day || 0;
-            return 0;
-        }
-
-        function getMetricLabel(metric) {
-            if (metric === 'pv-total') return '总 PV';
-            if (metric === 'uv-total') return '总 UV';
-            if (metric === 'pv-day') return '今日 PV';
-            if (metric === 'uv-day') return '今日 UV';
-            return '';
-        }
-
-        function formatNumber(value) {
-            if (typeof value !== 'number') return '--';
-            return value.toLocaleString('zh-CN');
-        }
-
-        function renderRankList(metric) {
+        function renderRankList(mode) {
             const container = document.getElementById('rank-list');
-            const list = tools
-                .map(tool => ({
-                    tool,
-                    stat: stats[tool.id],
-                    metricValue: getMetricValue(stats[tool.id], metric)
-                }))
-                .sort((a, b) => b.metricValue - a.metricValue);
+            let list = tools.slice();
+
+            if (mode === 'alphabet') {
+                list.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+            } else if (mode === 'updated') {
+                const ts = (tool) => new Date(tool.updatedAt || tool.createdAt || 0).getTime();
+                list.sort((a, b) => ts(b) - ts(a));
+            } else {
+                list = shuffle(list);
+            }
 
             if (list.length === 0) {
                 container.innerHTML = '<div class="empty-state">暂无排行数据</div>';
                 return;
             }
 
-            const label = getMetricLabel(metric);
-            container.innerHTML = list.map((item, index) => {
+            container.innerHTML = list.map((tool, index) => {
                 return `
                     <div class="rank-item">
                         <div class="rank-badge">${index + 1}</div>
                         <div class="rank-info">
-                            <a class="rank-name" href="/${item.tool.entry}">${item.tool.name}</a>
-                            <div class="rank-meta">${item.tool.description}</div>
+                            <a class="rank-name" href="/${tool.entry}">${tool.name}</a>
+                            <div class="rank-meta">${tool.description}</div>
                         </div>
                         <div class="rank-metric">
-                            <div class="metric-value">${formatNumber(item.metricValue)}</div>
-                            <div class="metric-label">${label}</div>
+                            <div class="metric-value">#${index + 1}</div>
+                            <div class="metric-label">随机推荐</div>
                         </div>
                     </div>
                 `;
@@ -325,20 +300,17 @@
         async function init() {
             try {
                 await loadTools();
-                await loadStats();
-                renderRankList(document.getElementById('rank-metric').value);
+                renderRankList(document.getElementById('rank-mode').value);
             } catch (error) {
                 document.getElementById('rank-list').innerHTML = `<div class="empty-state">${error.message}</div>`;
             }
         }
 
-        document.getElementById('rank-metric').addEventListener('change', (event) => {
+        document.getElementById('rank-mode').addEventListener('change', (event) => {
             renderRankList(event.target.value);
         });
 
         init();
     </script>
-
-    <script src="assets/clicks.js" defer></script>
 </body>
 </html>
